@@ -19,7 +19,7 @@ var _ = ginkgo.Describe("Fetcher", func() {
 		ginkgo.JustBeforeEach(func() {
 			f, err := filters.NewFilter(active...)
 			gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
-			fetcher = NewFetcher(10, &CFConfig{}, f)
+			fetcher = NewFetcher(10, &CFConfig{}, &BBSConfig{}, f)
 			gomega.Ω(fetcher).ShouldNot(gomega.BeNil())
 			fetcher.workInit()
 

@@ -7,6 +7,7 @@ import (
 
 const (
 	Applications         = "applications"
+	Droplets             = "droplets"
 	Buildpacks           = "buildpacks"
 	Domains              = "domains"
 	Events               = "events"
@@ -27,6 +28,7 @@ const (
 var (
 	All = []string{
 		Applications,
+		Droplets,
 		Buildpacks,
 		Domains,
 		Events,
@@ -53,6 +55,7 @@ func NewFilter(active ...string) (*Filter, error) {
 	filter := &Filter{
 		activated: map[string]bool{
 			Applications:         true,
+			Droplets:             true,
 			Buildpacks:           true,
 			Domains:              true,
 			IsolationSegments:    true,
@@ -84,6 +87,7 @@ func (f *Filter) setActive(active []string) error {
 	// override default states with all disabled
 	f.activated = map[string]bool{
 		Applications:         false,
+		Droplets:             false,
 		Buildpacks:           false,
 		Domains:              false,
 		IsolationSegments:    false,
@@ -115,7 +119,7 @@ func (f *Filter) setActive(active []string) error {
 
 func (f *Filter) Enabled(name string) bool {
 	status, ok := f.activated[name]
-	return (ok && status)
+	return ok && status
 }
 
 func (f *Filter) Any(names ...string) bool {

@@ -36,14 +36,16 @@ type CFConfig struct {
 
 type Fetcher struct {
 	sync.Mutex
-	config *CFConfig
-	worker *Worker
+	cfConfig  *CFConfig
+	bbsConfig *BBSConfig
+	worker    *Worker
 }
 
-func NewFetcher(threads int, config *CFConfig, filter *filters.Filter) *Fetcher {
+func NewFetcher(threads int, config *CFConfig, bbsConfig *BBSConfig, filter *filters.Filter) *Fetcher {
 	return &Fetcher{
-		config: config,
-		worker: NewWorker(threads, filter),
+		cfConfig:  config,
+		bbsConfig: bbsConfig,
+		worker:    NewWorker(threads, filter),
 	}
 }
 
@@ -65,6 +67,7 @@ func (c *Fetcher) workInit() {
 	c.worker.PushIf("spaces", c.fetchSpaces, filters.Applications, filters.Spaces)
 	c.worker.PushIf("space_quotas", c.fetchSpaceQuotas, filters.Spaces)
 	c.worker.PushIf("applications", c.fetchApplications, filters.Applications)
+	c.worker.PushIf("droplets", c.fetchDroplets, filters.Droplets)
 	c.worker.PushIf("domains", c.fetchDomains, filters.Domains)
 	c.worker.PushIf("process", c.fetchProcesses, filters.Applications)
 	c.worker.PushIf("routes", c.fetchRoutes, filters.Routes)
@@ -82,20 +85,27 @@ func (c *Fetcher) workInit() {
 	c.worker.PushIf("service_route_bindings", c.fetchServiceRouteBindings, filters.ServiceRouteBindings)
 	c.worker.PushIf("users", c.fetchUsers, filters.Events)
 	c.worker.PushIf("events", c.fetchEvents, filters.Events)
+	c.worker.PushIf("actual_lrps", c.fetchActualLRPs)
 }
 
 func (c *Fetcher) fetch() *models.CFObjects {
 	result := models.NewCFObjects()
 
-	session, err := NewSessionExt(c.config)
+	session, err := NewSessionExt(c.cfConfig)
 	if err != nil {
 		log.WithError(err).Error("unable to initialize cloud foundry clients")
+		result.Error = err
+		return result
+	}
+	bbs, err := NewBBSClient(c.bbsConfig)
+	if err != nil {
+		log.WithError(err).Error("unable to initialize bbs client")
 		result.Error = err
 		return result
 	}
 
 	c.workInit()
 
-	result.Error = c.worker.Do(session, result)
+	result.Error = c.worker.Do(session, bbs, result)
 	return result
 }

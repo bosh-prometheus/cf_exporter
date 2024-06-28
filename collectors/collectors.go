@@ -14,7 +14,8 @@ type ObjectCollector interface {
 
 type Collector struct {
 	workers    int
-	config     *fetcher.CFConfig
+	cfConfig   *fetcher.CFConfig
+	bbsConfig  *fetcher.BBSConfig
 	filter     *filters.Filter
 	collectors []ObjectCollector
 }
@@ -24,12 +25,14 @@ func NewCollector(
 	environment string,
 	deployment string,
 	workers int,
-	config *fetcher.CFConfig,
+	cfConfig *fetcher.CFConfig,
+	bbsConfig *fetcher.BBSConfig,
 	filter *filters.Filter,
 ) (*Collector, error) {
 	res := &Collector{
 		workers:    workers,
-		config:     config,
+		cfConfig:   cfConfig,
+		bbsConfig:  bbsConfig,
 		filter:     filter,
 		collectors: []ObjectCollector{},
 	}
@@ -118,8 +121,9 @@ func NewCollector(
 }
 
 func (c *Collector) Collect(ch chan<- prometheus.Metric) {
-	fetcher := fetcher.NewFetcher(c.workers, c.config, c.filter)
+	fetcher := fetcher.NewFetcher(c.workers, c.cfConfig, c.bbsConfig, c.filter)
 	objs := fetcher.GetObjects()
+
 	for _, collector := range c.collectors {
 		collector.Collect(objs, ch)
 	}

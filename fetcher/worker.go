@@ -9,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type WorkHandler func(*SessionExt, *models.CFObjects) error
+type WorkHandler func(*SessionExt, *BBSClient, *models.CFObjects) error
 
 type Work struct {
 	name    string
@@ -52,9 +52,9 @@ func (c *Worker) Reset() {
 	c.errs = make(chan error, 1000)
 }
 
-func (c *Worker) Do(session *SessionExt, result *models.CFObjects) error {
+func (c *Worker) Do(session *SessionExt, bbs *BBSClient, result *models.CFObjects) error {
 	for i := 0; i < c.threads; i++ {
-		go c.run(i, session, result)
+		go c.run(i, session, bbs, result)
 	}
 	return c.Wait()
 }
@@ -72,7 +72,7 @@ func (c *Worker) Wait() error {
 	return nil
 }
 
-func (c *Worker) run(id int, session *SessionExt, entry *models.CFObjects) {
+func (c *Worker) run(id int, session *SessionExt, bbs *BBSClient, entry *models.CFObjects) {
 	for {
 		work, ok := <-c.list
 		if !ok {
@@ -80,7 +80,7 @@ func (c *Worker) run(id int, session *SessionExt, entry *models.CFObjects) {
 		}
 		log.Debugf("[%2d] %s", id, work.name)
 		start := time.Now()
-		err := work.handler(session, entry)
+		err := work.handler(session, bbs, entry)
 		duration := time.Since(start)
 		if err != nil {
 			log.Errorf("[%2d] %s error: %s", id, work.name, err)
